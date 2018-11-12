@@ -1,3 +1,6 @@
+from queue import Empty
+
+from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 
 
@@ -28,7 +31,12 @@ class AsyncLibrary:
             Async get  ${handle}
         """
         assert handle in self._thread_pool, 'Invalid async call handle'
-        result = self._thread_pool[handle].result_queue.get()
+        try:
+            result = self._thread_pool[handle].result_queue.get(True, timeout=15)
+        except Empty:
+            logger.error(f"Async get keyword didn't retrieve result")
+            return
+
         del self._thread_pool[handle]
         return result
 
@@ -47,4 +55,3 @@ class AsyncLibrary:
         t = threading.Thread(target=wrapped_f, args=(q,) + args, kwargs=kwargs)
         t.result_queue = q
         return t
-
